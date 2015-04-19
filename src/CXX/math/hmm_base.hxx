@@ -52,8 +52,7 @@
 
 #include "container/graph.hxx"
 
-#include "util/io.hxx"
-
+#include <iostream>
 #include <vector>
 #include <map>
 #include <cassert>
@@ -383,7 +382,8 @@ class hmm {
         std::smatch bref;  // back-references
 
         for (;;) {
-            std::string line(util::readline(in));
+            std::string line;
+            std::getline(in, line);
 
             // Done
             if (std::regex_match(line, bref, std::regex(
@@ -419,7 +419,7 @@ class hmm {
                 if (!state.value.emit_p.deserialise(in))
                     return false;
 
-                line = util::readline(in);
+                std::getline(in, line);
 
                 if (!std::regex_match(line, bref, std::regex(
                     "^[ \\t]*EndEmission[ \\t]*$")))
@@ -476,7 +476,8 @@ class hmm {
         double    p      = 0.0;
 
         for (;;) {
-            std::string line(util::readline(in));
+            std::string line;
+            std::getline(in, line);
 
             // Done
             if (std::regex_match(line, bref, std::regex(
@@ -534,7 +535,8 @@ class hmm {
         std::smatch bref;  // back-references
 
         for (;;) {
-            std::string line(util::readline(in));
+            std::string line;
+            std::getline(in, line);
 
             // Done
             if (std::regex_match(line, bref, std::regex(
@@ -577,7 +579,8 @@ class hmm {
         std::smatch bref;  // back-references
 
         // Model <id>
-        std::string line(util::readline(in));
+        std::string line;
+        std::getline(in, line);
 
         if (std::regex_match(line, bref, std::regex(
             "^[ \\t]*Model[ \\t]+\"([^\"]*)\"[ \\t]*$")))

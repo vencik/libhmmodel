@@ -46,8 +46,7 @@
 #include "math/rng.hxx"
 #include "math/categorial_p.hxx"
 
-#include "util/io.hxx"
-
+#include <iostream>
 #include <list>
 #include <vector>
 #include <iostream>
@@ -121,7 +120,7 @@ class hmm_emit_categorial {
         std::string line;
         size_t      size = 0;
 
-        line = util::readline(in);
+        std::getline(in, line);
         if (std::regex_match(line, bref, std::regex(
             "^[ \\t]*Table size: (\\d+)[ \\t]*$")))
         {
@@ -131,7 +130,7 @@ class hmm_emit_categorial {
         else return false;  // tab size is mandatory
 
         for (size_t i = 0; i < size; ++i) {
-            line = util::readline(in);
+            std::getline(in, line);
 
             if (std::regex_match(line, bref, std::regex(
                 "^[ \\t]*\"(.*)\":[ \\t]*("

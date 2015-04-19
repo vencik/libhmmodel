@@ -45,8 +45,7 @@
 
 #include "math/normal_p.hxx"
 
-#include "util/io.hxx"
-
+#include <iostream>
 #include <regex>
 #include <sstream>
 #include <cassert>
@@ -182,7 +181,8 @@ class hmm_emit_gaussian {
     bool deserialise(std::istream & in) {
         std::smatch bref;
 
-        std::string line(util::readline(in));
+        std::string line;
+        std::getline(in, line);
 
         if (!std::regex_match(line, bref, std::regex(
             "^[ \\t]*Y[ \\t]*~[ \\t]*N(\\d+)\\([^,]*),([^\\)]*)\\)[ \\t]*$")))
@@ -203,7 +203,7 @@ class hmm_emit_gaussian {
 
         return true;
     }
-    
+
 };  // end of template class gaussian_hmm_emission_p
 
 }}  // end of namespace impl and math

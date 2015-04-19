@@ -1,6 +1,6 @@
 # Compiler & linker flags
 AM_CXXFLAGS = -g -Wall -Werror
-AM_LDFLAGS  = -L../.. -lhmm-gesture
+AM_LDFLAGS  =
 
 # Unit test scripts
 TESTS = \

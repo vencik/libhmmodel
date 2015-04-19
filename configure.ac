@@ -58,6 +58,31 @@ AC_ARG_ENABLE([strip],
         AC_MSG_RESULT([no])
     ])
 
+# Enable documentation build
+AC_MSG_CHECKING([whether to build documentation])
+AC_ARG_ENABLE([doc],
+    AS_HELP_STRING([--enable-doc], [Build documentation (default: yes if asciidoc is available)]),
+    [   # --enable-doc specified
+        enable_doc=true
+        case "${enableval}" in
+            no|false|off)
+                AC_MSG_RESULT([no])
+                enable_doc=false
+                ;;
+            yes|true|on|"")
+                AC_MSG_RESULT([yes])
+                ;;
+            *)
+                AC_MSG_ERROR([unexpected --enable-doc argument: ${enableval}])
+                ;;
+        esac
+    ],
+    [   # --enable-doc not specified
+        enable_doc=true
+        AC_MSG_RESULT([yes])
+    ])
+AM_CONDITIONAL([ENABLE_DOC], [test x$enable_doc = xtrue])
+
 
 #
 # Checks for programs
