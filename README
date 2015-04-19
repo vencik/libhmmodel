@@ -1,0 +1,31 @@
+Hidden Markov Model Library
+===========================
+
+
+Overview
+--------
+
+An implementation of HMM with unlimited graph topology.
+Categorial and Normal n-dimensional emssion distributions
+are supported (with diagonal covariance matrix for the
+Gaussian observations).
+
+
+Algorithms implemented
+----------------------
+
+* Forward algorithm
+* Viterbi algorithm
+* Baum--Welch algorithm for training
+
+
+License
+-------
+
+The software is available opensource under the terms of 3-clause BSD license.
+
+
+Author
+------
+
+Vaclav Krpec  <vencik@razdva.cz>
