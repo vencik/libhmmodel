@@ -1,6 +1,6 @@
 # Compiler & linker flags
 AM_CXXFLAGS = -g -Wall -Werror
-AM_LDFLAGS  = -lbluetooth
+AM_LDFLAGS  =
 
 SUBDIRS = \
     container \

@@ -85,7 +85,7 @@ class hmm_emit_categorial {
     /** Random probabilities setter */
     void set_rand() {
         size_t K = Y::cardinality();
-        auto   b = rand_p(K);
+        auto   b = rand_p_vec(K);
 
         for (size_t k = 0; k < K; ++k)
             m_impl.set(Y::value(k), b[k]);

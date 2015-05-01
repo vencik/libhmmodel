@@ -145,7 +145,7 @@ inline double rand_p(unsigned scale = MATH_DEFAULT_RAND_SCALE) {
  *  \param  n      Number of probabilities generated
  *  \param  scale  Precision factor
  */
-std::vector<double> rand_p(
+std::vector<double> rand_p_vec(
     size_t n, unsigned scale = MATH_DEFAULT_RAND_SCALE)
 {
     assert(n > 0);

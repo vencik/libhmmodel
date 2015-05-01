@@ -154,7 +154,7 @@ class baum_welch {
 
         // Initialise states start probability
         if (init_pi) {
-            auto pi = rand_p(m_model.state_cnt());
+            auto pi = rand_p_vec(m_model.state_cnt());
 
             m_model.for_each_state([&pi](state_t & state) {
                 state.value.p = pi[state.value.index];
@@ -164,7 +164,7 @@ class baum_welch {
         // Initialise transitions probability
         if (init_tr) {
             m_model.for_each_state([this](state_t & state) {
-                auto A = rand_p(m_model.transition_cnt_from(state));
+                auto A = rand_p_vec(m_model.transition_cnt_from(state));
 
                 size_t ij = 0;
                 m_model.for_each_trans_from(state,

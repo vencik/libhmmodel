@@ -78,7 +78,7 @@ AC_ARG_ENABLE([doc],
         esac
     ],
     [   # --enable-doc not specified
-        enable_doc=true
+        enable_doc=false
         AC_MSG_RESULT([yes])
     ])
 AM_CONDITIONAL([ENABLE_DOC], [test x$enable_doc = xtrue])
