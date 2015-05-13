@@ -6,14 +6,16 @@ AM_LDFLAGS  =
 TESTS = \
     hmm.sh \
     baum-welch.sh \
-    serialise.sh
+    serialise.sh \
+    ghmm.sh
 
 
 # Unit test programs
 check_PROGRAMS = \
     baum-welch \
     hmm \
-    serialise
+    serialise \
+    ghmm
 
 baum_welch_SOURCES = \
     baum-welch.cxx
@@ -23,3 +25,6 @@ hmm_SOURCES = \
 
 serialise_SOURCES = \
     serialise.cxx
+
+ghmm_SOURCES = \
+    ghmm.cxx

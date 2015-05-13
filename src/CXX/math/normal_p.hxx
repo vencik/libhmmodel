@@ -59,9 +59,9 @@ namespace math {
 /**
  *  \brief  Random variable with normal probability distribution
  *
- *  The implementation assumes \c Y to be (generally) a vector type,
- *  allowing for item acces via [] operator, copying and getting
- *  dimension using \c size() method.
+ *  The implementation assumes \c X to be a vector type of constant
+ *  dimension, allowing for item acces via [] operator, copying
+ *  and getting dimension using \c size() method.
  *  Default constructor should give zero vector.
  *
  *  Multivariate normal distribution density function is computed.
@@ -86,13 +86,23 @@ class normal_p {
 
     public:
 
-    /** Constructor of standard normal distribution N(0,1) */
-    normal_p(): m_u(0.0), m_sigma2(1.0) {}
+    /**
+     *  \brief  Constructor of standard normal distribution N(0,1)
+     */
+    normal_p(): m_u(0.0), m_sigma2(1.0) {
+        m_A.reserve(m_u.size());
+    }
 
     /** Constructor */
     normal_p(const X & u, const X & sigma2):
         m_u(u), m_sigma2(sigma2)
-    {}
+    {
+        if (m_u.size() != m_sigma2.size())
+            throw std::logic_error(
+                "gaussian_hmm_emission_p:: invalid arguments");
+
+        m_A.reserve(m_u.size());
+    }
 
     /** Probability getter */
     double operator () (const X & x) const {
@@ -169,6 +179,10 @@ class normal_p {
     void set(const X & u, const X & sigma2) throw(std::runtime_error) {
         static const double pi_x2 = 2.0 * M_PI;  // 2 * pi
 
+        if (u.size() != sigma2.size() || u.size() != m_u.size())
+            throw std::logic_error(
+                "gaussian_hmm_emission_p::set: invalid arguments");
+
         m_u      = u;
         m_sigma2 = sigma2;
 
@@ -183,7 +197,7 @@ class normal_p {
 
             pi_x2_kk_x_det_sigma2 *= pi_x2 * m_sigma2[i];
 
-            m_A = ::sqrt(m_sigma2[i]);
+            m_A[i] = ::sqrt(m_sigma2[i]);
         }
 
         m_c_inv = ::sqrt(pi_x2_kk_x_det_sigma2);
