@@ -48,6 +48,7 @@
 #include "math/hmm_base.hxx"
 #include "math/hmm_discrete.hxx"
 #include "math/hmm_gaussian.hxx"
+#include "math/numerics.hxx"
 #include "math/rng.hxx"
 
 #include <vector>
@@ -62,10 +63,6 @@
 #endif  // end of #ifndef HAVE_CXX11
 
 
-/** Absolute value */
-#define abs(x) ((x) < 0 ? -(x) : (x))
-
-
 namespace math {
 
 namespace impl {
@@ -78,12 +75,12 @@ namespace impl {
  *
  *  \code
  *    virtual void report(
- *        const model_t &                           model,
- *        const model_t::observation_t &            obs,
- *        const std::vector<std::vector<double> > & alpha,
- *        const std::vector<std::vector<double> > & beta,
- *        const std::vector<std::vector<double> > & gamma,
- *        const std::vector<std::vector<double> > & xi);
+ *        const model_t &                        model,
+ *        const model_t::observation_t &         obs,
+ *        const std::vector<math::real_vector> & alpha,
+ *        const std::vector<math::real_vector> & beta,
+ *        const std::vector<math::real_vector> & gamma,
+ *        const std::vector<math::real_vector> & xi);
  *  \endcode
  *
  *  The template functor \c PI shall be instantiated like this:
@@ -96,9 +93,9 @@ namespace impl {
  *
  *  \code
  *  pi(
- *      const std::list<std::vector<Y> > &                      obs,
- *      const std::vector<std::vector<std::vector<double> > > & gamma,
- *      const std::vector<std::vector<std::vector<double> > > & xi);
+ *      const std::list<std::vector<Y> > &                   obs,
+ *      const std::vector<std::vector<math::real_vector> > & gamma,
+ *      const std::vector<std::vector<math::real_vector> > & xi);
  *  \end code
  *
  *  and is responsible for implementation of emissions training.
@@ -154,7 +151,7 @@ class baum_welch {
 
         // Initialise states start probability
         if (init_pi) {
-            auto pi = rand_p_vec(m_model.state_cnt());
+            auto pi = rand_p_vector(m_model.state_cnt());
 
             m_model.for_each_state([&pi](state_t & state) {
                 state.value.p = pi[state.value.index];
@@ -164,7 +161,7 @@ class baum_welch {
         // Initialise transitions probability
         if (init_tr) {
             m_model.for_each_state([this](state_t & state) {
-                auto A = rand_p_vec(m_model.transition_cnt_from(state));
+                auto A = rand_p_vector(m_model.transition_cnt_from(state));
 
                 size_t ij = 0;
                 m_model.for_each_trans_from(state,
@@ -193,12 +190,12 @@ class baum_welch {
      *  \param  xi     Update output (for transitions)
      */
     virtual void report(
-        const model_t &                           model,
-        const observation_t &                     obs,
-        const std::vector<std::vector<double> > & alpha,
-        const std::vector<std::vector<double> > & beta,
-        const std::vector<std::vector<double> > & gamma,
-        const std::vector<std::vector<double> > & xi)
+        const model_t &                        model,
+        const observation_t &                  obs,
+        const std::vector<math::real_vector> & alpha,
+        const std::vector<math::real_vector> & beta,
+        const std::vector<math::real_vector> & gamma,
+        const std::vector<math::real_vector> & xi)
     {}
 
     private:
@@ -214,20 +211,21 @@ class baum_welch {
      *  \param  xi     Prob. of transitions at a time
      */
     void step(
-        const observation_t &               obs,
-        std::vector<std::vector<double> > & gamma,
-        std::vector<std::vector<double> > & xi)
+        const observation_t &            obs,
+        std::vector<math::real_vector> & gamma,
+        std::vector<math::real_vector> & xi)
     {
         size_t T = obs.size();  // training observation size
 
         assert(T > 0);
 
         // Forward procedure
-        std::vector<std::vector<double> > alpha(m_model.state_cnt());
+        std::vector<math::real_vector> alpha;
+        for (size_t i = 0; i < m_model.state_cnt(); ++i)
+            alpha.emplace_back(T);
 
         m_model.for_each_state([&,this](state_t & i) {
             auto & alpha_i = alpha[i.value.index];
-            alpha_i.assign(T, 0.0);
 
             alpha_i[0] = i.value.p * i.value.emit_p(obs[0]);
         });
@@ -236,7 +234,7 @@ class baum_welch {
             m_model.for_each_state([&,this](state_t & i) {
                 auto & alpha_i = alpha[i.value.index];
 
-                double sum_alpha_trans_p = 0.0;
+                real_t sum_alpha_trans_p = 0.0;
                 m_model.for_each_trans_to(i, [&](transition_t & trans) {
                     auto & j = trans.origin();
                     auto & alpha_j = alpha[j.value.index];
@@ -248,11 +246,12 @@ class baum_welch {
             });
 
         // Backward procedure
-        std::vector<std::vector<double> > beta(m_model.state_cnt());
+        std::vector<math::real_vector> beta;
+        for (size_t i = 0; i < m_model.state_cnt(); ++i)
+            beta.emplace_back(T);
 
         m_model.for_each_state([&,this](state_t & i) {
             auto & beta_i = beta[i.value.index];
-            beta_i.assign(T, 0.0);
 
             beta_i[T - 1] = 1.0;
         });
@@ -263,7 +262,7 @@ class baum_welch {
             m_model.for_each_state([&,this](state_t & i) {
                 auto & beta_i = beta[i.value.index];
 
-                double sum_beta_trans_emit = 0.0;
+                real_t sum_beta_trans_emit = 0.0;
                 m_model.for_each_trans_from(i,
                 [&,this](transition_t & trans) {
                     auto & j = trans.target();
@@ -279,10 +278,7 @@ class baum_welch {
         }
 
         // Update
-        std::vector<double> sum_alpha_beta(T);
-
-        for (size_t i = 0; i < m_model.state_cnt(); ++i)
-            gamma[i].assign(T, 0.0);
+        math::real_vector sum_alpha_beta(T);
 
         for (size_t t = 0; t < T; ++t) {
             sum_alpha_beta[t] = 0.0;
@@ -295,9 +291,6 @@ class baum_welch {
                     alpha[i][t] * beta[i][t] / sum_alpha_beta[t];
         }
 
-        for (size_t ij = 0; ij < m_model.transition_cnt(); ++ij)
-            xi[ij].assign(T - 1, 0.0);
-
         for (size_t t = 0; t < T - 1; ++t) {
             size_t t_plus_1 = t + 1;
 
@@ -308,7 +301,7 @@ class baum_welch {
                 auto & alpha_i = alpha[i.value.index];
                 auto & beta_j  = beta[j.value.index];
 
-                double xi_ij_t;
+                real_t xi_ij_t;
                 xi_ij_t  = alpha_i[t] * trans.value.p;
                 xi_ij_t *= beta_j[t_plus_1];
                 xi_ij_t *= j.value.emit_p(obs[t_plus_1]);
@@ -333,42 +326,39 @@ class baum_welch {
      *
      *  \return Sum of model parameters absolute differences
      */
-    double train(const std::list<observation_t> & obs) {
+    real_t train(const std::list<observation_t> & obs) {
         assert(!obs.empty());
 
-        double e = 0.0;
+        real_t e = 0.0;
 
         size_t D = obs.size();
         size_t M = m_model.state_cnt();
         size_t N = m_model.transition_cnt();
 
-        // Initialise states probability
-        std::vector<std::vector<std::vector<double> > > gamma(D);
-
-        for (auto i = gamma.begin(); i != gamma.end(); ++i) {
-            i->reserve(M);
-
-            for (size_t m = 0; m < M; ++m)
-                i->push_back(std::vector<double>());
-        }
-
-        // Initialise transitions probability
-        std::vector<std::vector<std::vector<double> > > xi(D);
-
-        for (auto i = xi.begin(); i != xi.end(); ++i) {
-            i->reserve(N);
-
-            for (size_t n = 0; n < N; ++n)
-                i->push_back(std::vector<double>());
-        }
+        // Initialise states & transitions probability
+        std::vector<std::vector<math::real_vector> > gamma(D);
+        std::vector<std::vector<math::real_vector> > xi(D);
 
         size_t d = 0;
+
+        for (auto o = obs.begin(); o != obs.end(); ++o, ++d) {
+            gamma[d].reserve(M);
+            xi[d].reserve(N);
+
+            for (size_t m = 0; m < M; ++m)
+                gamma[d].emplace_back(o->size());
+
+            for (size_t n = 0; n < N; ++n)
+                xi[d].emplace_back(o->size() - 1);
+        }
+
+        d = 0;
         for (auto o = obs.begin(); o != obs.end(); ++o, ++d)
             step(*o, gamma[d], xi[d]);
 
         // Set start probability
         m_model.for_each_state([&,this](state_t & i) {
-            double p_e = i.value.p;
+            real_t p_e = i.value.p;
 
             i.value.p = 0.0;
             for (d = 0; d < D; ++d)
@@ -376,28 +366,28 @@ class baum_welch {
             i.value.p /= D;
 
             p_e -= i.value.p;
-            e   += abs(p_e);
+            e   += p_e.abs();
         });
 
         // Set transitions probability
         m_model.for_each_trans([&,this](transition_t & ij) {
-            double p_e = ij.value.p;
+            real_t p_e = ij.value.p;
 
             auto & i = ij.origin();
 
-            double sum_xi_ij   = 0.0;
-            double sum_gamma_i = 0.0;
+            real_t sum_xi_ij   = 0.0;
+            real_t sum_gamma_i = 0.0;
 
             for (d = 0; d < D; ++d) {
                 auto & gamma_i = gamma[d][i.value.index];
                 auto & xi_ij   = xi[d][ij.value.index];
 
-                size_t T = gamma_i.size();
+                size_t T = gamma_i.rank();
 
-                assert(T - 1 == xi_ij.size());
+                assert(T - 1 == xi_ij.rank());
 
-                for (auto t = xi_ij.begin(); t != xi_ij.end(); ++t)
-                    sum_xi_ij += *t;
+                for (size_t t = 0; t < T - 1; ++t)
+                    sum_xi_ij += xi_ij[t];
 
                 for (size_t t = 0; t < T - 1; ++t)
                     sum_gamma_i += gamma_i[t];
@@ -406,7 +396,7 @@ class baum_welch {
             ij.value.p = sum_xi_ij / sum_gamma_i;
 
             p_e -= ij.value.p;
-            e   += abs(p_e);
+            e   += p_e.abs();
         });
 
         // Set emission probability
@@ -444,17 +434,18 @@ class baum_welch_emit_categorial {
      *
      *  \return Sum of absolute differences of parameters
      */
-    static double set_emission_p(
-        state_t &                                               i,
-        const std::list<std::vector<Y> > &                      obs,
-        const std::vector<std::vector<std::vector<double> > > & gamma,
-        const std::vector<std::vector<std::vector<double> > > & xi)
+    static real_t set_emission_p(
+        state_t &                                            i,
+        const std::list<std::vector<Y> > &                   obs,
+        const std::vector<std::vector<math::real_vector> > & gamma,
+        const std::vector<std::vector<math::real_vector> > & xi)
     {
-        double e = 0.0;
+        real_t e = 0.0;
 
-        std::vector<double> b_i(Y::cardinality(), 0.0);
-        double sum_gamma_i = 0.0;
-        double sum_b_i     = 0.0;
+        math::real_vector b_i(Y::cardinality());
+
+        real_t sum_gamma_i = 0.0;
+        real_t sum_b_i     = 0.0;
 
         size_t d = 0;
         for (auto o = obs.begin(); o != obs.end(); ++o, ++d) {
@@ -463,7 +454,7 @@ class baum_welch_emit_categorial {
             for (size_t k = 0; k < Y::cardinality(); ++k) {
                 const Y & v_k = Y::value(k);
 
-                double sum_chi_gamma_i = 0.0;
+                real_t sum_chi_gamma_i = 0.0;
                 for (size_t t = 0; t < o->size(); ++t)
                     if ((*o)[t] == v_k)
                         sum_chi_gamma_i += gamma_i[t];
@@ -471,9 +462,8 @@ class baum_welch_emit_categorial {
                 b_i[k] += sum_chi_gamma_i;
             }
 
-            auto gamma_i_t = gamma_i.begin();
-            for (; gamma_i_t != gamma_i.end(); ++gamma_i_t)
-                sum_gamma_i += *gamma_i_t;
+            for (size_t t = 0; t < gamma_i.rank(); ++t)
+                sum_gamma_i += gamma_i[t];
         }
 
         for (size_t k = 0; k < Y::cardinality(); ++k)
@@ -482,12 +472,12 @@ class baum_welch_emit_categorial {
         // Normalise emission probabilities
         for (size_t k = 0; k < Y::cardinality(); ++k) {
             const Y & v_k = Y::value(k);
-            double    p   = b_i[k] / sum_b_i;
-            double    p_e = i.value.emit_p(v_k) - p;
+            real_t    p   = b_i[k] / sum_b_i;
+            real_t    p_e = i.value.emit_p(v_k) - p;
 
             i.value.emit_p.set(v_k, p);
 
-            e += abs(p_e);
+            e += p_e.abs();
         }
 
         return e;
@@ -507,12 +497,12 @@ class baum_welch_emit_categorial {
      *
      *  \return Sum of absolute differences of parameters
      */
-    virtual double operator () (
-        const std::list<std::vector<Y> > &                      obs,
-        const std::vector<std::vector<std::vector<double> > > & gamma,
-        const std::vector<std::vector<std::vector<double> > > & xi)
+    virtual real_t operator () (
+        const std::list<std::vector<Y> > &                   obs,
+        const std::vector<std::vector<math::real_vector> > & gamma,
+        const std::vector<std::vector<math::real_vector> > & xi)
     {
-        double e = 0.0;
+        real_t e = 0.0;
 
         m_model.for_each_state([&,this](state_t & i) {
             e += set_emission_p(i, obs, gamma, xi);
@@ -553,19 +543,19 @@ class baum_welch_emit_gaussian {
      *
      *  \return Sum of absolute differences of parameters
      */
-    virtual double operator () (
-        const std::list<std::vector<Y> > &                      obs,
-        const std::vector<std::vector<std::vector<double> > > & gamma,
-        const std::vector<std::vector<std::vector<double> > > & xi)
+    virtual real_t operator () (
+        const std::list<std::vector<Y> > &                   obs,
+        const std::vector<std::vector<math::real_vector> > & gamma,
+        const std::vector<std::vector<math::real_vector> > & xi)
     {
-        double e = 0.0;
+        real_t e = 0.0;
 
         assert(!obs.empty());
 
         m_model.for_each_state([&,this](state_t & i) {
             Y u_i, sigma2_i;
 
-            double f = 0.0;
+            real_t f = 0.0;
 
             // Estimate u
             auto obs_k_iter = obs.begin();
@@ -579,7 +569,7 @@ class baum_welch_emit_gaussian {
                     [&,this](const transition_t & ij) {
                         const auto & xi_ij_k = xi[k][ij.value.index];
 
-                        for (size_t l = 0; l < u_i.size(); ++l)
+                        for (size_t l = 0; l < u_i.rank(); ++l)
                             u_i[l] += xi_ij_k[t] * obs_k_t[l];
 
                         f += xi_ij_k[t];
@@ -587,11 +577,11 @@ class baum_welch_emit_gaussian {
                 }
             }
 
-            for (size_t l = 0; l < u_i.size(); ++l) {
+            for (size_t l = 0; l < u_i.rank(); ++l) {
                 u_i[l] /= f;
 
-                double p_e = i.value.emit_p.u()[l] - u_i[l];
-                e += abs(p_e);
+                real_t p_e = i.value.emit_p.u()[l] - u_i[l];
+                e += p_e.abs();
             }
 
             // Estimate sigma^2
@@ -606,8 +596,8 @@ class baum_welch_emit_gaussian {
                     [&,this](const transition_t & ij) {
                         const auto & xi_ij_k = xi[k][ij.value.index];
 
-                        for (size_t l = 0; l < u_i.size(); ++l) {
-                            double delta = u_i[l] - obs_k_t[l];
+                        for (size_t l = 0; l < u_i.rank(); ++l) {
+                            real_t delta = u_i[l] - obs_k_t[l];
 
                             sigma2_i[l] += xi_ij_k[t] * delta * delta;
                         }
@@ -615,11 +605,11 @@ class baum_welch_emit_gaussian {
                 }
             }
 
-            for (size_t l = 0; l < sigma2_i.size(); ++l) {
+            for (size_t l = 0; l < sigma2_i.rank(); ++l) {
                 sigma2_i[l] /= f;
 
-                double p_e = i.value.emit_p.sigma2()[l] - sigma2_i[l];
-                e += abs(p_e);
+                real_t p_e = i.value.emit_p.sigma2()[l] - sigma2_i[l];
+                e += p_e.abs();
             }
 
             i.value.emit_p.set(u_i, sigma2_i);

@@ -41,6 +41,7 @@
 #include "config.hxx"
 
 #include "math/hmm.hxx"
+#include "math/numerics.hxx"
 
 #include <exception>
 #include <stdexcept>
@@ -143,7 +144,7 @@ class viterbi: public model_impl_t::viterbi {
 
     const model::state_t * m_state;  /**< Most probable actual state       */
     path_t                 m_path;   /**< Most probable path to \c m_state */
-    double                 m_p;      /**< Probability of the path          */
+    math::real_t           m_p;      /**< Probability of the path          */
 
     /**
      *  \brief  Update path (by most probable transition)
@@ -157,7 +158,7 @@ class viterbi: public model_impl_t::viterbi {
         size_t                 t,
         const model::state_t & origin,
         const model::state_t & target,
-        double                 p)
+        const math::real_t &   p)
     {
         --t;
 
@@ -189,7 +190,7 @@ class viterbi: public model_impl_t::viterbi {
         size_t                 t0,
         const emission_t &     y,
         const model::state_t & state,
-        double                 p)
+        const math::real_t &   p)
     {
         assert(0 == t0);
 
@@ -205,7 +206,7 @@ class viterbi: public model_impl_t::viterbi {
         const emission_t &     y,
         const model::state_t & origin,
         const model::state_t & target,
-        double                 p)
+        const math::real_t &   p)
     {
         assert(t > 0);
 
@@ -276,7 +277,7 @@ int main(int argc, char * const argv[]) {
         std::cerr
             << "Standard exception caught: "
             << x.what()
-            << std::endl;;
+            << std::endl;
     }
     catch (...) {
         std::cerr

@@ -51,6 +51,7 @@
 #include "config.hxx"
 
 #include "container/graph.hxx"
+#include "math/numerics.hxx"
 
 #include <iostream>
 #include <vector>
@@ -91,16 +92,16 @@ class hmm {
     struct state_val {
         size_t    index;  /**< 0-based state index          */
         X             x;  /**< Hidden variable value        */
-        double        p;  /**< Start probability            */
+        real_t        p;  /**< Start probability            */
         P        emit_p;  /**< Emission probability measure */
 
-        state_val(size_t i, const X & x_init, double p_init):
+        state_val(size_t i, const X & x_init, const real_t & p_init):
             index(i),
             x(x_init),
             p(p_init)
         {}
 
-        state_val(size_t i, X && x_init, double p_init):
+        state_val(size_t i, X && x_init, const real_t & p_init):
             index(i),
             x(x_init),
             p(p_init)
@@ -115,9 +116,9 @@ class hmm {
     /** Transition value */
     struct trans_val {
         size_t index;  /**< 0-based transition index */
-        double     p;  /**< Transition probability   */
+        real_t     p;  /**< Transition probability   */
 
-        trans_val(size_t i, double p_init):
+        trans_val(size_t i, const real_t & p_init):
             index(i),
             p(p_init)
         {}
@@ -151,7 +152,7 @@ class hmm {
      *
      *  \return The state (for transitions creation)
      */
-    inline state_t & state(const X & x, double p) {
+    inline state_t & state(const X & x, const real_t & p) {
         return m_impl.add_node(m_impl.node_cnt(), x, p);
     }
 
@@ -163,7 +164,7 @@ class hmm {
      *
      *  \return The state (for transitions creation)
      */
-    inline state_t & state(X && x, double p) {
+    inline state_t & state(X && x, const real_t & p) {
         return m_impl.add_node(m_impl.node_cnt(), x, p);
     }
 
@@ -177,9 +178,9 @@ class hmm {
      *  \return The transition
      */
     inline transition_t & transition(
-        state_t & o,
-        state_t & t,
-        double    p)
+        state_t &      o,
+        state_t &      t,
+        const real_t & p)
     {
         return m_impl.add_branch(o, t,
             trans_val(m_impl.branch_cnt(), p));
@@ -473,7 +474,7 @@ class hmm {
 
         state_t * origin = NULL;
         state_t * target = NULL;
-        double    p      = 0.0;
+        real_t    p      = 0.0;
 
         for (;;) {
             std::string line;

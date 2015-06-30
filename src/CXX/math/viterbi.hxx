@@ -45,6 +45,7 @@
 
 #include "config.hxx"
 
+#include "math/numerics.hxx"
 #include "math/hmm_base.hxx"
 
 #include <vector>
@@ -72,13 +73,13 @@ namespace impl {
  *      size_t    time,
  *      const Y & y,
  *      state_t & state,
- *      double    probability);
+ *      real_t    probability);
  *  void report(
  *      size_t    time,
  *      const Y & y,
  *      state_t & origin,
  *      state_t & target,
- *      double    probability);
+ *      real_t    probability);
  *  \endcode
  *
  *  The 1st function shall be called on the very 1st observation item
@@ -109,7 +110,7 @@ class viterbi {
     private:
 
     /** Hidden random variable value probability (old and new) */
-    struct p_t { double p[2]; };
+    struct p_t { real_t p[2]; };
 
     /** Hidden random variables value probabilities */
     typedef std::vector<p_t> states_p_t;
@@ -145,7 +146,7 @@ class viterbi {
         size_t          time,
         const Y &       y,
         const state_t & state,
-        double          probability)
+        const real_t &  probability)
     {}
 
     /**
@@ -165,7 +166,7 @@ class viterbi {
         const Y &       y,
         const state_t & origin,
         const state_t & target,
-        double          probability)
+        const real_t &  probability)
     {}
 
     /**
@@ -177,7 +178,7 @@ class viterbi {
         if (0 == m_t) {
             // Initialise state probabilities
             m_model.for_each_state([&,this](const state_t & state) {
-                double p = state.value.p * state.value.emit_p(y);
+                real_t p = state.value.p * state.value.emit_p(y);
 
                 m_states_p[state.value.index].p[0] = p;
 
@@ -187,7 +188,7 @@ class viterbi {
         else {
             // Update state probabilities
             m_model.for_each_state([&,this](const state_t & state) {
-                double          max_p  = 0.0;
+                real_t          max_p  = 0.0;
                 const state_t * argmax = NULL;
 
                 m_model.for_each_trans_to(state,
@@ -195,7 +196,7 @@ class viterbi {
                     const state_t & from = trans.origin();
                     const state_t & to   = trans.target();
 
-                    double p;
+                    real_t p;
                     p  = m_states_p[from.value.index].p[(m_t + 1) % 2];
                     p *= trans.value.p;
                     p *= to.value.emit_p(y);

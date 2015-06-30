@@ -45,6 +45,7 @@
 
 #include "config.hxx"
 
+#include "math/numerics.hxx"
 #include "math/hmm_base.hxx"
 
 #include <vector>
@@ -78,14 +79,14 @@ class forward {
     private:
 
     /** Probability of being in a state at times t and t - 1 */
-    struct p_t { double p[2]; };
+    struct p_t { real_t p[2]; };
 
     const model_t &  m_model;  /**< Model                          */
     std::vector<p_t> m_alpha;  /**< Probability of being in states */
     size_t           m_i;      /**< Index to \c m_alpha for time t */
 
     /** alpha_t(x) (for 0 <= t <= 1) */
-    inline double & alpha(size_t t, const state_t & state) const {
+    inline real_t & alpha(size_t t, const state_t & state) const {
         return m_alpha[state.value.index].p[t];
     }
 
@@ -122,7 +123,7 @@ class forward {
         m_i = (m_i + 1) % 2;
 
         m_model.for_each_state([&,this](const state_t & state) {
-            double sum_p = 0.0;
+            real_t sum_p = 0.0;
             m_model.for_each_trans_to(state,
             [&,this](const transition_t & trans) {
                 sum_p += trans.value.p * m_alpha(m_i_prev, trans.origin());
@@ -133,7 +134,7 @@ class forward {
     }
 
     /** State probability getter */
-    inline double operator () (const state_t & state) const {
+    inline real_t operator () (const state_t & state) const {
         return m_alpha(m_i, state);
     }
 

@@ -43,6 +43,7 @@
 
 #include "config.hxx"
 
+#include "math/numerics.hxx"
 #include "math/normal_p.hxx"
 
 #include <iostream>
@@ -69,61 +70,10 @@ class hmm_emit_gaussian {
 
     normal_p<Y> m_impl;  /**< Gaussian random vector */
 
-    /**
-     *  \brief  Serialise Y
-     *
-     *  \param  out     Output stream
-     *  \param  indent  Indentation
-     */
-    static void serialiseY(std::ostream & out, const Y & y) {
-        out << '[';
-
-        if (y.size())
-            out << y[0];
-
-        for (size_t i = 1; i < y.size(); ++i)
-            out << " " << y[i];
-
-        out << ']';
-    }
-
-    /**
-     *  \brief  Deserialise Y
-     *
-     *  \param  in  Input stream
-     *
-     *  \return \c true iff deserialisation was successful
-     */
-    static bool deserialiseY(std::istream & in, Y & y) {
-        static const std::string double_str(
-            "([-+]?\\d+(\\.\\d+([eE][-+]?\\d+)?)?)");
-
-        std::string re('[');
-        if (y.size())
-            re += double_str;
-        for (size_t i = 1; i < y.size(); ++i)
-            re += " " + double_str;
-        re += ']';
-
-        std::smatch bref;
-        std::string y_str;
-        in >> y_str;
-
-        if (!std::regex_match(y_str, bref, std::regex(re))) return false;
-
-        for (size_t i = 0; i < y.size(); ++i) {
-            std::stringstream y_i(bref[i]);
-
-            if ((y_i >> y[i]).fail()) return false;
-        }
-
-        return true;
-    }
-
     public:
 
     /** Probability getter */
-    inline double operator () (const Y & y) const { return m_impl(y); }
+    inline real_t operator () (const Y & y) const { return m_impl(y); }
 
     /** Random emission getter */
     inline Y rand() const { return m_impl.rand(); }
@@ -144,15 +94,13 @@ class hmm_emit_gaussian {
         // Small random u, rather large variance
         Y u, sigma2;
 
-        std::vector<double> init;
-
-        init = math::rand(u.size(), 0.3);
-        for (size_t i = 0; i < init.size(); ++i)
+        math::real_vector init = math::rand_real_vector(u.rank(), 0.3);
+        for (size_t i = 0; i < init.rank(); ++i)
             u[i] = init[i];
 
-        init = math::rand(u.size(), 30.0);
-        for (size_t i = 0; i < init.size(); ++i)
-            sigma2[i] = init[i];
+        init = math::rand_real_vector(u.rank(), 10.0, /* no 0s */ true);
+        for (size_t i = 0; i < init.rank(); ++i)
+            sigma2[i] = init[i] * init[i];
 
         set(u, sigma2);
     }
@@ -164,11 +112,10 @@ class hmm_emit_gaussian {
      *  \param  indent  Indentation
      */
     void serialise(std::ostream & out, const std::string & indent = "") const {
-        out << indent << "Y ~ N" << m_impl.get_u().size() << '(';
-        serialiseY(out, m_impl.get_u());
-        out << ',';
-        serialiseY(out, m_impl.get_sigma2());
-        out << ')' << std::endl;
+        out
+            << indent << "Y ~ N" << m_impl.u().rank() << '('
+            << m_impl.u() << ',' << m_impl.sigma2() << ')'
+            << std::endl;
     }
 
     /**
@@ -194,10 +141,10 @@ class hmm_emit_gaussian {
         std::stringstream sigma2_ss(bref[3]);
 
         Y u;
-        if (!deserialise(u_ss, u)) return false;
+        in >> u;
 
         Y sigma2;
-        if (!deserialise(sigma2_ss, sigma2)) return false;
+        in >> sigma2;
 
         set(u, sigma2);
 

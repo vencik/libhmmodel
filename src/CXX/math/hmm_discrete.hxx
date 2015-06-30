@@ -74,18 +74,18 @@ class hmm_emit_categorial {
     public:
 
     /** Probability getter */
-    inline double operator () (const Y & y) const { return m_impl(y); }
+    inline real_t operator () (const Y & y) const { return m_impl(y); }
 
     /** Random emission getter */
     inline Y rand() const { return m_impl.rand(); }
 
     /** Probability setter */
-    inline void set(const Y & y, double p) { m_impl.set(y, p); }
+    inline void set(const Y & y, real_t p) { m_impl.set(y, p); }
 
     /** Random probabilities setter */
     void set_rand() {
         size_t K = Y::cardinality();
-        auto   b = rand_p_vec(K);
+        auto   b = rand_p_vector(K);
 
         for (size_t k = 0; k < K; ++k)
             m_impl.set(Y::value(k), b[k]);
@@ -100,7 +100,7 @@ class hmm_emit_categorial {
     void serialise(std::ostream & out, const std::string & indent = "") const {
         out << indent << "Table size: " << m_impl.size() << std::endl;
 
-        m_impl.for_each([&](const Y & y, double p) {
+        m_impl.for_each([&](const Y & y, real_t p) {
             out << indent << "\"" << y << "\": " << p << std::endl;
         });
     }
@@ -142,7 +142,7 @@ class hmm_emit_categorial {
                 if ((y_ss >> y).fail()) return false;
 
                 std::stringstream p_ss(bref[2]);
-                double p;
+                real_t p;
                 if ((p_ss >> p).fail()) return false;
 
                 set(y, p);

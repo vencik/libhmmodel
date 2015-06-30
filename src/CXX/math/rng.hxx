@@ -42,6 +42,7 @@
 
 
 #include "config.hxx"
+#include "numerics.hxx"
 
 #include <vector>
 #include <cstdlib>
@@ -70,17 +71,19 @@ namespace math {
  *
  *  \return X ~ U(l, h) with precision of scale \c scale
  */
-double rand(
-    double   l,
-    double   h,
+real_t rand_real(
+    real_t   l,
+    real_t   h,
     unsigned scale = MATH_DEFAULT_RAND_SCALE)
 {
     assert(l < h);
     assert(scale);
 
-    double i = (double)::rand() / (double)INT_MAX;
-    double s = (unsigned)(i * scale) / (double)scale;
-    double x = (h - l) * s + l;
+    const real_t real_scale(scale);
+
+    const real_t i((real_t::impl_t)::rand() / (real_t::impl_t)INT_MAX);
+    const real_t s((i * real_scale).trunc() / real_t(scale));
+    const real_t x((h - l) * s + l);
 
     assert(l <= x && x <= h);
 
@@ -89,39 +92,41 @@ double rand(
 
 
 /**
- *  \brief  Random vector
+ *  \brief  Random real vector
  *
- *  \param  n      Vector size
+ *  \param  rank   Vector rank
  *  \param  norm   Vector norm
+ *  \param  no_0s  Zero items are unacceptable
  *  \param  scale  Precision factor
  *
  *  \return Random vector with requested norm
  */
-std::vector<double> rand(
-    size_t   n,
-    double   norm  = 1.0,
+real_vector rand_real_vector(
+    size_t   rank,
+    real_t   norm  = 1.0,
+    bool     no_0s = false,
     unsigned scale = MATH_DEFAULT_RAND_SCALE)
 {
-    assert(n > 0);
-    assert(norm >= 0);
+    assert(norm >= 0.0);
 
-    std::vector<double> x;
-    x.reserve(n);
+    real_vector x(rank);
 
-    double x_norm2 = 0.0;
+    real_t x_norm2(0);
 
-    for (size_t i = 0; i < n; ++i) {
-        double x_i = rand(-1.0, 1.0, scale);
+    for (size_t i = 0; i < rank; ++i) {
+        real_t x_i;
+        do x_i = rand_real(-1.0, 1.0, scale);
+        while (no_0s && 0.0 == x_i);
 
         x_norm2 += x_i * x_i;
 
-        x.push_back(x_i);
+        x[i] = x_i;
     }
 
-    double f2 = norm * norm / x_norm2;
-
-    for (auto x_i = x.begin(); x_i != x.end(); ++x_i)
-        *x_i *= f2;
+    real_t f = sqrt(norm * norm / x_norm2);
+    for (size_t i = 0; i < rank; ++i) {
+        x[i] *= f;
+    }
 
     return x;
 }
@@ -134,35 +139,33 @@ std::vector<double> rand(
  *
  *  \param  scale  Precision factor
  */
-inline double rand_p(unsigned scale = MATH_DEFAULT_RAND_SCALE) {
-    return rand(0.0, 1.0, scale);
+inline real_t rand_p(unsigned scale = MATH_DEFAULT_RAND_SCALE) {
+    return rand_real(0.0, 1.0, scale);
 }
 
 
 /**
- *  \brief  \c n random probabilities p_i : sum p_i == 1
+ *  \brief  Vector of random probabilities p_i : sum p_i == 1
  *
- *  \param  n      Number of probabilities generated
+ *  \param  rank   Vector rank
  *  \param  scale  Precision factor
  */
-std::vector<double> rand_p_vec(
-    size_t n, unsigned scale = MATH_DEFAULT_RAND_SCALE)
+real_vector rand_p_vector(
+    size_t rank, unsigned scale = MATH_DEFAULT_RAND_SCALE)
 {
-    assert(n > 0);
+    real_vector p(rank);
 
-    std::vector<double> p;
-    p.reserve(n);
+    real_t h = 1.0;
 
-    double h = 1.0;
+    size_t i;
+    for (i = 0; i < rank - 1; ++i) {
+        real_t p_i = rand_real(0.0, h, scale);
 
-    for (size_t i = 0; i < n - 1; ++i) {
-        double p_i = rand(0.0, h, scale);
-
-        p.push_back(p_i);
+        p[i] = p_i;
         h -= p_i;
     }
 
-    p.push_back(h);
+    p[i] = h;
 
     return p;
 }

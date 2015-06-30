@@ -43,6 +43,7 @@
 
 #include "config.hxx"
 
+#include "math/numerics.hxx"
 #include "math/rng.hxx"
 
 #include <algorithm>
@@ -75,8 +76,8 @@ const T select_p(std::vector<T> & v, I inj) {
     size_t scale  = v.size();
     size_t offset = 0;
 
-    inj.for_each([&](T t, double p) {
-        size_t end = offset + ::round(scale * p);
+    inj.for_each([&](T t, const real_t & p) {
+        size_t end = offset + (real_t(scale) * p).round();
 
         for (size_t i = offset; i < end && i < scale; ++i)
             v[i] = t;
@@ -86,7 +87,9 @@ const T select_p(std::vector<T> & v, I inj) {
 
     assert(offset == scale);
 
-    offset = (scale - 1) * rand_p();
+    offset = (real_t(scale - 1) * rand_p()).trunc();
+
+    assert(offset < v.size());
 
     return v[offset];
 }
@@ -133,15 +136,15 @@ class categorial_p {
     private:
 
     /** Probability table */
-    std::map<X, double> m_tab;
+    std::map<X, real_t> m_tab;
 
     public:
 
     /** Probability getter */
-    inline double operator () (const X & x) const {
+    inline real_t operator () (const X & x) const {
         auto i = m_tab.find(x);
 
-        return m_tab.end() == i ? 0.0 : i->second;
+        return m_tab.end() == i ? real_t(0) : i->second;
     }
 
     /** Table size */
@@ -155,7 +158,7 @@ class categorial_p {
      *
      *  The injection functor takes 2 arguments:
      *  \code
-     *  void operator () (const X & x, double p);
+     *  void operator () (const X & x, real_t p);
      *  \endcode
      *
      *  \tparam I    Injection type
@@ -164,7 +167,7 @@ class categorial_p {
     template <class I>
     inline void for_each(I inj) const {
         std::for_each(m_tab.begin(), m_tab.end(),
-        [&](const std::pair<X, double> x) {
+        [&](const std::pair<X, real_t> x) {
             inj(x.first, x.second);
         });
     }
@@ -175,7 +178,7 @@ class categorial_p {
     }
 
     /** Probability setter */
-    inline void set(const X & x, double p) { m_tab[x] = p; }
+    inline void set(const X & x, real_t p) { m_tab[x] = p; }
 
 };  // end of template class categorial_p
 

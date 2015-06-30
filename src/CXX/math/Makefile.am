@@ -1,4 +1,5 @@
 noinst_HEADERS = \
+    numerics.hxx \
     baum-welch.hxx \
     categorial_p.hxx \
     forward.hxx \

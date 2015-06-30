@@ -41,6 +41,7 @@
 #include "config.hxx"
 
 #include "math/hmm.hxx"
+#include "math/numerics.hxx"
 
 #include <exception>
 #include <stdexcept>
@@ -70,28 +71,37 @@ static const char * const state_t_str[] = {
     /* S3 */  "S3",
 };  // end of state_t_str array
 
+/** State serialisation */
+std::ostream & operator << (std::ostream & out, state_t state) {
+    return out << state_t_str[state];
+}
+
+
 /** Output N-dimensional random variable */
 template <size_t N>
-class emission_vector: public std::vector<double> {
+class emission_vector: public math::real_vector {
     public:
 
+    /** Rank */
+    static size_t rank() { return N; }
+
     /** Default constructor */
-    emission_vector(): std::vector<double>(N) {}
+    emission_vector(): math::real_vector(N) {}
 
     /**
      *  \brief  Constructor
      *
      *  \param  i  Initialiser
      */
-    emission_vector(double i): std::vector<double>(N, i) {}
+    emission_vector(const math::real_t & i): math::real_vector(N, i) {}
 
     /**
      *  \brief  Constructor
      *
      *  \param  il  Initialiser list
      */
-    emission_vector(std::initializer_list<double> il):
-        std::vector<double>(il) {}
+    emission_vector(const std::initializer_list<math::real_t> & il):
+        math::real_vector(il) {}
 
 };  // end of class emission_vector
 
@@ -145,7 +155,7 @@ class viterbi: public model_impl_t::viterbi {
 
     const model::state_t * m_state;  /**< Most probable actual state       */
     path_t                 m_path;   /**< Most probable path to \c m_state */
-    double                 m_p;      /**< Probability of the path          */
+    math::real_t           m_p;      /**< Probability of the path          */
 
     /**
      *  \brief  Update path (by most probable transition)
@@ -159,7 +169,7 @@ class viterbi: public model_impl_t::viterbi {
         size_t                 t,
         const model::state_t & origin,
         const model::state_t & target,
-        double                 p)
+        const math::real_t   & p)
     {
         --t;
 
@@ -191,14 +201,14 @@ class viterbi: public model_impl_t::viterbi {
         size_t                 t0,
         const emission_t &     y,
         const model::state_t & state,
-        double                 p)
+        const math::real_t &   p)
     {
         assert(0 == t0);
 
         std::cerr
             << "Time: " << t0 << std::endl
-            << "\tstate:       "  << state_t_str[state.value.x] << std::endl
-            << "\temission:    [" << y[0] << ',' << y[1] << ']' << std::endl
+            << "\tstate:       "  << state.value.x << std::endl
+            << "\temission:    [" << y[0] << ' ' << y[1] << ']' << std::endl
             << "\tprobability: "  << p << std::endl;
     }
 
@@ -207,15 +217,15 @@ class viterbi: public model_impl_t::viterbi {
         const emission_t &     y,
         const model::state_t & origin,
         const model::state_t & target,
-        double                 p)
+        const math::real_t &   p)
     {
         assert(t > 0);
 
         std::cerr
             << "Time: " << t << std::endl
-            << "\ttarget:      " << state_t_str[target.value.x] << std::endl
-            << "\temission:    [" << y[0] << ',' << y[1] << ']' << std::endl
-            << "\torigin:      " << state_t_str[origin.value.x] << std::endl
+            << "\ttarget:      " << target.value.x << std::endl
+            << "\temission:    [" << y[0] << ' ' << y[1] << ']' << std::endl
+            << "\torigin:      " << origin.value.x << std::endl
             << "\tprobability: " << p << std::endl;
 
         update(t, origin, target, p);
@@ -231,7 +241,7 @@ class viterbi: public model_impl_t::viterbi {
             << "Path (probability " << m_p << "):";
 
         for (auto i = m_path.begin(); i != m_path.end(); ++i) {
-            std::cout << " " << state_t_str[(*i)->value.x];
+            std::cout << " " << (*i)->value.x;
         }
 
         std::cout
@@ -248,17 +258,19 @@ static int main_impl(int argc, char * const argv[]) {
     do {  // pragmatic do ... while (0) loop allowing for breaks
         model m;
 
+        m.serialise("Gaussian model", std::cout);
+
         viterbi v(m);
 
         v.step({-0.1,  1.3});
         v.step({-0.1,  1.3});
         v.step({ 0.9, -0.2});
         v.step({ 0.0,  1.0});
-        v.step({-0.2,  8.0});
-        v.step({ 0.9,  0.0});
-        //v.step({ 0.5, -0.3});
-        v.step({ 0.8, -0.1});
-        //v.step({ 0.2, -0.1});
+        v.step({-0.2,  1.0});
+        //v.step({ 0.9,  0.0});
+        v.step({ 0.5, -0.3});
+        //v.step({ 0.8, -0.1});
+        v.step({ 0.2, -0.1});
         v.step({-0.1,  1.1});
 
         v.report();

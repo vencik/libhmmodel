@@ -52,6 +52,7 @@
 #include "math/forward.hxx"
 #include "math/viterbi.hxx"
 #include "math/baum-welch.hxx"
+#include "math/numerics.hxx"
 
 #include <iostream>
 
@@ -175,7 +176,7 @@ class hmm: public impl::hmm<X, Y, impl::hmm_emit_categorial<Y> > {
      *  \param  y      Observation value
      *  \param  p      Emission probability
      */
-    inline void emission(state_t & state, const Y & y, double p) {
+    inline void emission(state_t & state, const Y & y, const real_t & p) {
         state.value.emit_p.set(y, p);
     }
 

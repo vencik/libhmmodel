@@ -1,7 +1,9 @@
 /**
+ *  \brief  Baum--Welch algorithm for HMM with Gaussian emissions
+ *
  *  See http://en.wikipedia.org/wiki/Baum-Welch_algorithm
  *
- *  \date    2015/04/19
+ *  \date    2015/05/22
  *  \author  Vaclav Krpec  <vencik@razdva.cz>
  *
  *
@@ -49,8 +51,9 @@
 #include <iostream>
 #include <cassert>
 #include <list>
+#include <initializer_list>
+#include <algorithm>
 #include <vector>
-#include <cstdarg>
 #include <cstdlib>
 #include <ctime>
 
@@ -61,62 +64,72 @@
 
 /** Hidden random variable */
 enum state_t {
-    STATE1 = 0,
-    STATE2
+    S0 = 0,
+    S1,
+    S2,
+    S3
 };  // end of enum state_t
 
 /** Translate state_t to string */
 static const char * const state_t_str[] = {
-    /* STATE1 */  "State 1",
-    /* STATE2 */  "State 2",
+    /* S0 */  "S0",
+    /* S1 */  "S1",
+    /* S2 */  "S2",
+    /* S3 */  "S3",
 };  // end of state_t_str array
 
 /** State serialisation */
-inline static std::ostream & operator << (
-    std::ostream & out, state_t state)
-{
+std::ostream & operator << (std::ostream & out, state_t state) {
     return out << state_t_str[state];
 }
 
 
-/** Output random variable */
-enum emission_value_t {
-    NO_EGGS = 0,
-    EGGS,
-};  // end of enum emission_value_t
-
-static const char * const emission_value_t_str[] = {
-    /* NO_EGGS */  "No eggs",
-    /* EGGS    */  "Eggs",
-};  // end of emission_value_t_str array
-
-/** Emission serialisation */
-std::ostream & operator << (
-    std::ostream & out, const emission_value_t & e)
-{
-    return out << emission_value_t_str[e];
-}
-
-/** Output random variable (wrapper) */
-class emission_t: public math::hmm_emission_t<emission_value_t> {
+/** Output N-dimensional random variable */
+template <size_t N>
+class emission_vector: public math::real_vector {
     public:
 
-    /** Constructor */
-    emission_t(emission_value_t v):
-        math::hmm_emission_t<emission_value_t>(v)
+    /** Rank */
+    static size_t rank() { return N; }
+
+    /** Default constructor */
+    emission_vector(): math::real_vector(N) {}
+
+    /**
+     *  \brief  Constructor
+     *
+     *  \param  i  Initialiser
+     */
+    emission_vector(const math::real_t & i): math::real_vector(N, i) {}
+
+    /**
+     *  \brief  Constructor
+     *
+     *  \param  il  Initialiser list
+     */
+    emission_vector(
+        const std::initializer_list<math::real_vector::base_t> & il)
+    :
+        math::real_vector(il)
     {}
 
-    static size_t cardinality() { return 2; }
+    /** Comparison */
+    bool operator < (const emission_vector & rarg) const {
+        for (size_t d = 0; d < rank(); ++d)
+            if ((*this)[d] != rarg[d]) return (*this)[d] < rarg[d];
 
-    static emission_t value(size_t index) {
-        return emission_t((emission_value_t)index);
+        return false;
     }
 
-};  // end of class emission_t
+};  // end of class emission_vector
+
+
+/** Output 2D random variable */
+typedef emission_vector<2> emission_t;
 
 
 /** Model implementation */
-typedef math::hmm<state_t, emission_t> model_impl_t;
+typedef math::ghmm<state_t, emission_t> model_impl_t;
 
 /** Model */
 class model: public model_impl_t {
@@ -125,21 +138,36 @@ class model: public model_impl_t {
     /** Construct the model */
     model() {
         // States & their start probabilities
-        model_impl_t::state_t & state1 = state(STATE1, 0.5);
-        model_impl_t::state_t & state2 = state(STATE2, 0.5);
+        model_impl_t::state_t & s0 = state(S0, 1.0);
+        model_impl_t::state_t & s1 = state(S1, 0.0);
+        model_impl_t::state_t & s2 = state(S2, 0.0);
+        model_impl_t::state_t & s3 = state(S3, 0.0);
 
-        // Transition table
-        transition(state1, state1, 0.5);
-        transition(state1, state2, 0.5);
-        transition(state2, state1, 0.3);
-        transition(state2, state2, 0.7);
+        // Transitions
+        transition(s0, s0, 0.5);
+        transition(s0, s1, 0.5);
 
-        // Emission table
-        emission(state1, NO_EGGS, 0.3);
-        emission(state1, EGGS,    0.7);
-        emission(state2, NO_EGGS, 0.8);
-        emission(state2, EGGS,    0.2);
+        transition(s1, s1, 0.7);
+        transition(s1, s2, 0.3);
+
+        transition(s2, s2, 0.8);
+        transition(s2, s3, 0.2);
+
+        transition(s3, s3, 1.0);
+
+        // Emission parameters (mean & sigma^2)
+/*
+        emission(s0, {1.0, 0.0}, {1.0, 1.0});
+        emission(s1, {0.1, 1.1}, {0.9, 0.9});
+        emission(s2, {1.2, 0.2}, {0.8, 0.8});
+        emission(s3, {0.3, 1.3}, {0.7, 0.7});
+*/
+        emission(s0, {0.0, 0.0}, {1.0, 1.0});
+        emission(s1, {0.0, 0.0}, {1.0, 1.0});
+        emission(s2, {0.0, 0.0}, {1.0, 1.0});
+        emission(s3, {0.0, 0.0}, {1.0, 1.0});
     }
+
 
     /** Baum-Welch algorithm (debugging reports) */
     class baum_welch: public model_impl_t::baum_welch {
@@ -162,8 +190,10 @@ class model: public model_impl_t {
         {
             std::cerr << label << ':' << std::endl;
 
-            for (auto i = obs.begin(); i != obs.end(); ++i)
-                std::cerr << " (" << *i << ")";
+            std::for_each(obs.begin(), obs.end(),
+            [](const emission_t & e) {
+                std::cerr << " [" << e[0] << ' ' << e[1] << ']';
+            });
 
             std::cerr << std::endl;
         }
@@ -183,8 +213,8 @@ class model: public model_impl_t {
             for (size_t i = 0; i < table.size(); ++i) {
                 std::cerr << i << ':';
 
-                for (size_t d = 0; d < table[i].rank(); ++d)
-                    std::cerr << ' ' << table[i][d];
+                for (size_t t = 0; t < table[i].rank(); ++t)
+                    std::cerr << ' ' << table[i][t];
 
                 std::cerr << std::endl;
             }
@@ -247,18 +277,17 @@ class model: public model_impl_t {
 
 
 /** Create observation */
-static std::vector<emission_t> observation(size_t T...) {
+static std::vector<emission_t> observation(
+    const std::initializer_list<
+        const std::initializer_list<math::real_vector::base_t> > & emissions)
+{
     std::vector<emission_t> obs;
-    obs.reserve(T);
+    obs.reserve(emissions.size());
 
-    va_list args;
-    va_start(args, T);
-
-    for (size_t i = 0; i < T; ++i) {
-        obs.push_back((emission_value_t)va_arg(args, int));
-    }
-
-    va_end(args);
+    std::for_each(emissions.begin(), emissions.end(),
+    [&obs](const std::initializer_list<math::real_vector::base_t> & emission) {
+        obs.push_back(emission);
+    });
 
     return obs;
 }
@@ -284,8 +313,10 @@ std::ostream & operator << (
 {
     out << "observation:";
 
-    for (auto i = obs.begin(); i != obs.end(); ++i)
-        out << " \"" << *i << '"';
+    std::for_each(obs.begin(), obs.end(),
+    [&out](const emission_t & emission) {
+        out << " \"" << emission << '"';
+    });
 
     return out;
 }
@@ -310,29 +341,35 @@ static int baum_welch_test(
     int exit_code = 64;  // pessimistic assumption
 
     do {  // pragmatic do ... while (0) loop allowing for breaks
-        static const auto NN = observation(2, NO_EGGS, NO_EGGS);
-        static const auto NE = observation(2, NO_EGGS, EGGS);
-        static const auto EN = observation(2, EGGS,    NO_EGGS);
-        static const auto EE = observation(2, EGGS   , EGGS);
-
-        model m;
-
         // Train model
         std::list<std::vector<emission_t> > training_set;
-        training_set.push_back(NN);
-        training_set.push_back(NN);
-        training_set.push_back(NN);
-        training_set.push_back(NN);
-        training_set.push_back(NE);
-        training_set.push_back(EE);
-        training_set.push_back(EE);
-        training_set.push_back(EN);
-        training_set.push_back(NN);
-        training_set.push_back(NN);
 
+        training_set.push_back(
+            observation({
+                {1.0, 0.0},
+                {0.5, 0.5},
+                //{1.1,-0.1},
+                {1.0, 0.0},
+                {0.4,-0.6},
+                //{0.5,-0.5},
+                //{0.4,-0.6},
+            }));
+
+        training_set.push_back(
+            observation({
+                {0.99, 0.01},
+                {0.5,  0.51},
+                //{1.1, 0.0},
+                {1.0,  0.0 },
+                {0.4, -0.58},
+                //{0.49,-0.51},
+                //{0.5,-0.5},
+            }));
+
+        model m;
         model::baum_welch bw(m, true, true, true);
 
-        m.serialise("Chicken (initial)", std::cout);
+        m.serialise("Gaussian HMM", std::cout);
 
         math::real_t e;
 
@@ -349,16 +386,17 @@ static int baum_welch_test(
 
                 ++training_loops;
 
-            } while (e > convergency_e);
+            } while (e > convergency_e && 999 > training_loops);
         }
 
-        m.serialise("Chicken", std::cout);
+        m.serialise("Test", std::cout);
 
         std::cout
             << "Convergency error of " << e
             << " reached in " << training_loops
             << " loops" << std::endl;
 
+#if (0)
         // Test empyrical probabilities of observations
         std::map<std::vector<emission_t>, unsigned> obs_cnt;
         obs_cnt[NN] = 0;
@@ -383,6 +421,7 @@ static int baum_welch_test(
                 << (double)(i->second) / testing_loops
                 << std::endl;
         }
+#endif
 
         exit_code = 0;  // success
 
