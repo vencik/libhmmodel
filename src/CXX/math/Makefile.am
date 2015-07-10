@@ -1,5 +1,4 @@
 noinst_HEADERS = \
-    numerics.hxx \
     baum-welch.hxx \
     categorial_p.hxx \
     forward.hxx \
@@ -9,5 +8,7 @@ noinst_HEADERS = \
     hmm.hxx \
     hmm_simulation.hxx \
     normal_p.hxx \
+    numerics.hxx \
+    real.hxx \
     rng.hxx \
     viterbi.hxx

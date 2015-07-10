@@ -43,7 +43,7 @@
 
 #include "config.hxx"
 
-#include "math/numerics.hxx"
+#include "math/real.hxx"
 #include "math/rng.hxx"
 
 #include <algorithm>
@@ -77,7 +77,7 @@ const T select_p(std::vector<T> & v, I inj) {
     size_t offset = 0;
 
     inj.for_each([&](T t, const real_t & p) {
-        size_t end = offset + (real_t(scale) * p).round();
+        size_t end = offset + (long long)(real_t(scale) * p).round();
 
         for (size_t i = offset; i < end && i < scale; ++i)
             v[i] = t;
@@ -87,7 +87,7 @@ const T select_p(std::vector<T> & v, I inj) {
 
     assert(offset == scale);
 
-    offset = (real_t(scale - 1) * rand_p()).trunc();
+    offset = (long long)(real_t(scale - 1) * rand_p()).trunc();
 
     assert(offset < v.size());
 

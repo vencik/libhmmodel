@@ -51,7 +51,7 @@
 #include "config.hxx"
 
 #include "container/graph.hxx"
-#include "math/numerics.hxx"
+#include "math/real.hxx"
 
 #include <iostream>
 #include <vector>

@@ -45,11 +45,11 @@
 
 #include "config.hxx"
 
+#include "math/real.hxx"
+#include "math/rng.hxx"
 #include "math/hmm_base.hxx"
 #include "math/hmm_discrete.hxx"
 #include "math/hmm_gaussian.hxx"
-#include "math/numerics.hxx"
-#include "math/rng.hxx"
 
 #include <vector>
 #include <list>

@@ -45,6 +45,7 @@
 
 #include "config.hxx"
 
+#include "math/real.hxx"
 #include "math/hmm_base.hxx"
 #include "math/hmm_discrete.hxx"
 #include "math/hmm_gaussian.hxx"
@@ -52,7 +53,6 @@
 #include "math/forward.hxx"
 #include "math/viterbi.hxx"
 #include "math/baum-welch.hxx"
-#include "math/numerics.hxx"
 
 #include <iostream>
 

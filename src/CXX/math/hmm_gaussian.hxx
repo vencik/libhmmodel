@@ -43,7 +43,7 @@
 
 #include "config.hxx"
 
-#include "math/numerics.hxx"
+#include "math/real.hxx"
 #include "math/normal_p.hxx"
 
 #include <iostream>

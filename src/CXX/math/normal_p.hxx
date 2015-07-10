@@ -43,7 +43,7 @@
 
 #include "config.hxx"
 
-#include "math/numerics.hxx"
+#include "math/real.hxx"
 #include "math/rng.hxx"
 
 #include <cassert>
@@ -234,7 +234,7 @@ class normal_p {
 
                 // sigma/F category for dimension d
                 size_t c =
-                    (size_t)((x[d] /* - 0 */).abs() /* / 1 */ * real_t(F));
+                    (long long)((x[d] /* - 0 */).abs() /* / 1 */ * real_t(F));
 #if (0)
 std::cerr
     << "sigma/" << F << " category in dimension " << d << ": "

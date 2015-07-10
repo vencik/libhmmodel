@@ -45,7 +45,7 @@
 
 #include "config.hxx"
 
-#include "math/numerics.hxx"
+#include "math/real.hxx"
 #include "math/hmm_base.hxx"
 
 #include <vector>

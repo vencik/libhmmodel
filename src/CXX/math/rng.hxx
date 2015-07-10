@@ -42,7 +42,7 @@
 
 
 #include "config.hxx"
-#include "numerics.hxx"
+#include "real.hxx"
 
 #include <vector>
 #include <cstdlib>

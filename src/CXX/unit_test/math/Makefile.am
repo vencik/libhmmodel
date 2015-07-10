@@ -4,6 +4,7 @@ AM_LDFLAGS  =
 
 # Unit test scripts
 TESTS = \
+    numerics.sh \
     normal_p.sh \
     hmm.sh \
     baum-welch.sh \
@@ -14,12 +15,16 @@ TESTS = \
 
 # Unit test programs
 check_PROGRAMS = \
+    numerics \
     normal_p \
     baum-welch \
     hmm \
     serialise \
     ghmm \
     baum-welch.ghmm
+
+numerics_SOURCES = \
+    numerics.cxx
 
 normal_p_SOURCES = \
     normal_p.cxx
